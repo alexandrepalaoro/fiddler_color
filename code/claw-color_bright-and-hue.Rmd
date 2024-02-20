@@ -1,0 +1,583 @@
+---
+title: "Claw coloration in the fiddler crab <i>Leptuca uruguayensis</i> has no correlation with male quality"
+author: "Graham, Florentino, Smithers, Menezes, de Carvalho & Palaoro"
+date: "2024-01-08"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, fig.width = 5, fig.height = 5)
+library(ggtern)
+library(scales)
+library(lmtest)
+library(betareg)
+library(parameters)
+library(performance)
+```
+
+### Loading data
+
+Setting up the code and loading the data.
+
+```{r}
+
+color2 = read.csv("D:/Dropbox/Orientados/Mestrado - Jonatas/Paper - Color/claw.colors/data/uca_data_true_reflectance_day2.csv",h=T, sep = ',')
+
+# We removed individual 33 because he was clearly an outlier for the lipid content analysis.
+# Since We have no explanation to why this individual was so different, we removed it from the analyses.
+
+color2.t = color2[-33,]
+
+color2.t
+
+# Since reflectance comes in percentage, I'm dividing by a 100 to give values between 0 and 1. It's easier to interpret
+
+color2.t$red = color2.t$percent.red/100
+color2.t$blue = color2.t$percent.blue/100
+color2.t$green = color2.t$percent.green/100
+```
+
+### Ternary plot
+
+Our first goal is simply to check how much variation we have in reflectance.  
+Thus, we're using a ternary plot to demonstrate how variable reflectance is in this population.
+
+```{r include=F}
+knitr::opts_chunk$set(echo = T, fig.width = 8, fig.height = 8)
+```
+
+```{r}
+
+# Now we're just creating a data frame that will make plotting easier.
+
+color.percent = data.frame(color2.t$percent.red,color2.t$percent.green,color2.t$percent.blue)
+colnames(color.percent) = c("percent.red","percent.green","percent.blue")
+
+# This is the ternary plot
+
+ggtern(data=color.percent,aes(y=percent.red,z=percent.green,x=percent.blue)) + 
+  geom_point(size = 5, color = 'black', alpha = .3) +  theme_bw()  + 
+  theme_hidetitles() + 
+  theme(panel.grid.major = element_line(colour = "grey30"),
+        panel.grid.minor = element_line(colour = 'grey30')) +
+  theme_showarrows() + theme_ticksinside() +
+  limit_tern(T = .8, 
+             L = .6, 
+             R = .65) +
+  Tarrowlab("Red reflectance (%)") + 
+  Larrowlab("Blue reflectance (%)") + 
+  Rarrowlab("Green reflectance (%)") 
+
+
+# And this is a plot to see how blue and red reflectance correlate. No analysis, just visual assessment.
+
+ggplot(data = color2, aes(y=percent.blue, x = percent.red)) +
+  geom_point(shape = 21, size = 5, colour = 'black', fill = 'purple', alpha = .7) + 
+  theme_classic() +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(family = 'sans')) +
+  labs( x = "Red reflectance (%)", y = "Blue reflectance (%)")
+
+```
+
+
+### Spearman correlation - Green + Blue reflectance (a.k.a. Brightness 1)
+
+Now we're doing the analysis. First, we will run all models with green + blue reflectance. Crabs have a dichromatic vision with peaks on the blue and green spectrum, so we're analyzing the combination of those spectra. Given that the residuals are poorly behaved for most the correlations, we are using the Spearman's rank test to test the correlation between brightness 1 and all quality indices. 
+
+```{r}
+#Calculating brightness
+color2.t$bright2 = color2.t$blue+color2.t$green
+
+
+### Correlation tests
+#Carapace length
+car.bright2 = cor.test(x = color2.t$carapace, y = color2.t$bright2, method = 'spearman')
+
+car.bright2
+
+
+#Claw length
+claw.bright2 = cor.test(x = color2.t$claw, y = color2.t$bright2, method = 'spearman')
+
+claw.bright2
+
+
+#Muscle mass
+musc.bright2 = cor.test(x = color2.t$muscle, y = color2.t$bright2, method = 'spearman')
+
+musc.bright2
+
+
+#Lipid percentage
+lipid.bright2 = cor.test(x = color2.t$lipid.percent, y = color2.t$bright2, method = 'spearman')
+
+lipid.bright2
+
+```
+
+### Brightness 1 reflectance plots
+
+```{r}
+par(mfrow = c(2,2))
+
+plot(bright2 ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Blue + Green reflectance",
+     pch = 21, cex = 2, bg = alpha('#008080', 0.5))
+legend("topright", legend = "A", cex = 2, bty = 'n')
+
+plot(bright2 ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Blue + Green reflectance",
+     pch = 21, cex = 2, bg = alpha('#008080', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')
+
+
+plot(bright2 ~ muscle, data = color2.t, bty = 'l', las = 1, 
+     xlab = "Muscle weight (g)", ylab = "Blue + Green reflectance",
+     pch = 21, cex = 2, bg = alpha('#008080', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')
+
+
+plot(x = color2.t$lipid.percent, y = color2.t$bright2, las = 1, bty = 'l',
+     ylab = "Blue + Green reflectance", xlab = "Lipid content in the body (%)",
+     pch = 21, cex = 2, bg = alpha('#008080', 0.5))
+
+legend("topright", legend = "D", cex = 2, bty = 'n')
+```
+
+
+### Spearman correlation  - Green + Blue + Red reflectance (a.k.a brightness 2)
+
+Same thing we did for the green reflectance, but now we sum blue, green and red reflectance.
+
+```{r}
+#Calculating brightness
+color2.t$bright3 = color2.t$blue + color2.t$green + color2.t$red
+
+### Correlation tests
+#Carapace length
+car.bright3 = cor.test(x = color2.t$carapace, y = color2.t$bright3, method = 'spearman')
+
+car.bright3
+
+#Claw length
+claw.bright3 = cor.test(x = color2.t$claw, y = color2.t$bright3, method = 'spearman')
+
+claw.bright3
+
+
+#Muscle mass
+musc.bright3 = cor.test(x = color2.t$muscle, y = color2.t$bright3, method = 'spearman')
+
+musc.bright3
+
+
+#Lipid percent
+lipid.bright3 = cor.test(x = color2.t$lipid.percent, y = color2.t$bright3, method = 'spearman')
+
+lipid.bright3
+
+```
+
+### Brightness 2 reflectance plots
+
+```{r}
+par(mfrow = c(2,2))
+
+plot(bright3 ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Green + Blue + Red reflectance",
+     pch = 21, cex = 2, bg = alpha('white', 0.5))
+
+legend("topright", legend = "A", cex = 2, bty = 'n')
+
+plot(bright3 ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Green + Blue + Red reflectance",
+     pch = 21, cex = 2, bg = alpha('white', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')
+
+plot(bright3 ~ muscle, data = color2.t, bty = 'l', las = 1, xlab = "Muscle weight (g)", ylab = "Green + Blue + Red reflectance",
+     pch = 21, cex = 2, bg = alpha('white', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')
+
+plot(bright3 ~ lipid.percent, data = color2.t, xlab = "Lipid content in the body (%)", ylab = "Green + Blue + Red reflectance",
+     pch = 21, cex = 2, bg = alpha('white', 0.5), bty = 'l', las = 1)
+
+legend("topright", legend = "D", cex = 2, bty = 'n')
+```
+
+
+### Spearman correlation - Hue analysis
+
+Now we are shifting to another aspect of color: hue. To get the hue for dichromatic vision, we divided raw blue by raw green reflectance and reran the correlation tests we did before. 
+As before, the residuals were all over the place, so we opted to use a non-parametric tests
+
+```{r}
+#Calculating hue
+color2.t$hue = color2.t$blue/color2.t$green
+
+#Carapace length
+car.hue1 = cor.test(x = color2.t$carapace, y = color2.t$hue, method = 'spearman')
+
+car.hue1
+
+#Claw length
+claw.hue1 = cor.test(x = color2.t$claw, y = color2.t$hue, method = 'spearman')
+
+claw.hue1
+
+#Muscle mass
+musc.hue1 = cor.test(x = color2.t$muscle, y = color2.t$hue, method = 'spearman')
+
+musc.hue1
+
+#Lipid percentange
+lipid.hue1 = cor.test(x = color2.t$lipid.percent, y = color2.t$hue, method = 'spearman')
+
+lipid.hue1
+
+```
+
+#### Now, hue plots
+
+```{r}
+
+par(mfrow=c(2,2))
+
+{plot(hue ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Hue (blue/green)",
+     pch = 21, cex = 2, bg = alpha('#0D98BA', 0.5))
+
+legend("topright", legend = "A", cex = 2, bty = 'n')}
+
+{plot(hue ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Hue (blue/green)",
+     pch = 21, cex = 2, bg = alpha('#0D98BA', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')}
+
+{plot(hue ~ muscle, data = color2.t, bty = 'l', las = 1, xlab = "Muscle weight (g)", ylab = "Hue (blue/green)",
+     pch = 21, cex = 2, bg = alpha('#0D98BA', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')}
+
+{plot(hue ~ lipid.percent, data = color2.t, xlab = "Lipid content in the body (%)", ylab = "Hue (blue/green)",
+     pch = 21, cex = 2, bg = alpha('#0D98BA', 0.5), bty = 'l', las = 1)
+
+legend("topright", legend = "D", cex = 2, bty = 'n')}
+```
+
+
+### Spearman correlation - Hue 2 
+
+We are using a secondary measure of hue because, while crabs are largely insensitive to red wavelengths, some manifestations of the red can be seen for the crabs. Instead of seeing red, they might see the claw as black, for instance. Thus, we opted to do a second measure of hue that includes red. To do this, we divided blue by the sum of green and red reflectance. We then ran ran the same analysis shown above.
+
+```{r}
+
+### Calculating hue 2
+
+color2.t$hue2 = color2.t$blue/(color2.t$green+color2.t$red)
+
+#Carapace length
+car.hue2 = cor.test(x = color2.t$carapace, y = color2.t$hue2, method = 'spearman')
+
+car.hue2
+
+
+#Claw length
+claw.hue2 = cor.test(x = color2.t$claw, y = color2.t$hue2, method = 'spearman')
+
+claw.hue2
+
+
+#Muscle mass
+muscle.hue2 = cor.test(x = color2.t$muscle, y = color2.t$hue2, method = 'spearman')
+
+muscle.hue2
+
+
+#Lipid percentage
+lipid.hue2 = cor.test(x = color2.t$lipid.percent, y = color2.t$hue2, method = 'spearman')
+
+lipid.hue2
+
+```
+
+### Hue 2 plots
+
+```{r}
+par(mfrow=c(2,2))
+
+{plot(hue2 ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Hue 2 (blue/green + red)",
+     pch = 21, cex = 2, bg = alpha('darkgoldenrod2', 0.5))
+
+legend("topright", legend = "A", cex = 2, bty = 'n')}
+
+{plot(hue2 ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Hue 2 (blue/green + red)",
+     pch = 21, cex = 2, bg = alpha('darkgoldenrod2', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')}
+
+{plot(hue2 ~ muscle, data = color2.t, bty = 'l', las = 1, xlab = "Muscle weight (g)", ylab = "Hue 2 (blue/green + red)",
+     pch = 21, cex = 2, bg = alpha('darkgoldenrod2', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')}
+
+{plot(hue2 ~ lipid.percent, data = color2.t, xlab = "Lipid content in the body (%)", ylab = "Hue 2 (blue/green + red)",
+     pch = 21, cex = 2, bg = alpha('darkgoldenrod2', 0.5), bty = 'l', las = 1)
+
+legend("topright", legend = "D", cex = 2, bty = 'n')}
+```
+
+### Reflectance analysis - Beta regression - Red reflectance
+
+For the supplementary file, we will analyze the reflectance of the each color channel separately.
+To do this, we used a beta regression (i.e., a generalized linear model with a beta distribution) because reflectance values are constrained between 0 and 1, which fit this distribution while not fitting a Gaussian distribution.  
+To calculate significance, we compare the model at hand with a null model using a likelihood ratio test.
+
+```{r}
+
+#Null model
+r0 = betareg(red ~ 1, data = color2.t)
+
+#Carapace length
+r3 = betareg(red ~ carapace, data = color2.t)
+
+summary(r3)
+
+parameters::standardise_parameters(r3)
+
+#likelihood ratio test
+lrtest(r0,r3)
+
+#Claw length
+r1 = betareg(red ~ claw, data = color2.t)
+
+summary(r1)
+
+parameters::standardise_parameters(r1)
+
+#likelihood ratio test
+lrtest(r0,r1)
+
+#Muscle mass
+r2 = betareg(red ~ muscle, data = color2.t)
+
+summary(r2)
+
+parameters::standardise_parameters(r2)
+
+#likelihood ratio test
+lrtest(r0,r2)
+
+#Lipid percentage
+r4 = lm(red ~ lipid.percent, data = color2.t)
+
+summary(r4)
+
+parameters::standardise_parameters(r4)
+
+#likelihood ratio test
+lrtest(r0,r4)
+
+```
+
+### Red reflectance plots
+
+```{r}
+
+par(mfrow = c(2,2))
+
+{plot(red ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Red reflectance",
+     pch = 21, cex = 2, bg = alpha('red', 0.5))
+
+legend("topright", legend = "A", cex = 2, bty = 'n')}
+
+{plot(red ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Red reflectance",
+     pch = 21, cex = 2, bg = alpha('red', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')}
+
+{plot(red ~ muscle, data = color2.t, bty = 'l', las = 1, xlab = "Muscle weight (g)", ylab = "Red reflectance",
+     pch = 21, cex = 2, bg = alpha('red', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')}
+
+{plot(red ~ lipid.percent, data = color2.t, xlab = "Lipid content in the body (%)", ylab = "Red reflectance",
+     pch = 21, cex = 2, bg = alpha('red', 0.5), bty = 'l', las = 1)
+
+legend("topright", legend = "D", cex = 2, bty = 'n')}
+
+```
+
+### Beta regression models - Blue reflectance
+
+Same thing we did for the red reflectance, but now with the blue reflectance.
+
+```{r}
+
+#Null model
+b0 = betareg(blue ~ 1, data = color2.t)
+
+#Carapace length
+b3 = betareg(blue ~ carapace, data = color2.t)
+
+summary(b3)
+
+parameters::standardise_parameters(b3)
+
+#likelihood ratio test
+lrtest(b0,b3)
+
+
+#Claw length
+b1 = betareg(blue ~ claw, data = color2.t)
+
+summary(b1)
+
+parameters::standardise_parameters(b1)
+
+#likelihood ratio test
+lrtest(b0,b1)
+
+
+#Muscle mass
+b2 = betareg(blue ~ muscle, data = color2.t)
+
+summary(b2)
+
+parameters::standardise_parameters(b2)
+
+#likelihood ratio test
+lrtest(b0,b2)
+
+
+
+#Lipid content
+b4 = betareg(blue ~ lipid.percent, data = color2.t)
+
+summary(b4)
+
+parameters::standardise_parameters(b4)
+
+#likelihood ratio test
+lrtest(b0,b4)
+
+```
+
+### Blue reflectance plots
+
+```{r}
+par(mfrow = c(2,2))
+
+{plot(blue ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Blue reflectance",
+     pch = 21, cex = 2, bg = alpha('blue', 0.5))
+legend("topright", legend = "A", cex = 2, bty = 'n')}
+
+{plot(blue ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Blue reflectance",
+     pch = 21, cex = 2, bg = alpha('blue', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')}
+
+
+{plot(blue ~ muscle, data = color2.t, bty = 'l', las = 1, 
+     xlab = "Muscle weight (g)", ylab = "Blue reflectance",
+     pch = 21, cex = 2, bg = alpha('blue', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')}
+
+rn <- range(color2.t$lipid.percent)
+newdata <- data.frame(lipid.percent = seq(rn[1], rn[2], length.out = 100))
+
+plotData <- xy.coords(x = newdata$lipid.percent, y = predict(b4, newdata = newdata, type = 'response'))
+
+{plot(plotData, ylim = range(color2.t$blue), type = 'l', las = 1, bty = 'l',
+     ylab = "Blue reflectance", xlab = "Lipid content in the body (%)",
+     lwd = 5, col = 'grey30')
+
+points(x = color2.t$lipid.percent, y = color2.t$blue, cex = 2, pch = 21,
+       bg = alpha('blue',0.5))
+
+legend("topright", legend = "D", cex = 2, bty = 'n')}
+```
+
+### Beta regression models - Green reflectance
+
+```{r}
+
+#Null model
+g0 = betareg(green ~ 1, data = color2.t)
+
+#Carapace width
+g3 = betareg(green ~ carapace, data = color2.t)
+
+summary(g3)
+
+parameters::standardise_parameters(g3)
+
+#likelihood ratio test
+lrtest(g0,g3)
+
+#Claw length
+g1 = betareg(green ~ claw, data = color2.t)
+
+summary(g1)
+
+parameters::standardise_parameters(g1)
+
+#likelihood ratio test
+lrtest(g0,g1)
+
+#Muscle mass
+g2 = betareg(green ~ muscle, data = color2.t)
+
+summary(g2)
+
+parameters::standardise_parameters(g2)
+
+#likelihood ratio test
+lrtest(g0,g2)
+
+#Lipid percentage
+g4 = lm(green ~ lipid.percent, data = color2.t)
+
+summary(g4)
+
+parameters::standardise_parameters(g4)
+
+#likelihood ratio test
+lrtest(g0,g4)
+
+```
+
+### Green reflectance plots
+```{r include=F}
+knitr::opts_chunk$set(echo = T, fig.width = 8, fig.height = 8)
+```
+
+```{r}
+
+par(mfrow = c(2,2))
+
+{plot(green ~ carapace, data = color2.t, bty = 'l', las = 1, xlab = "Carapace width (cm)", ylab = "Green reflectance",
+     pch = 21, cex = 2, bg = alpha('green', 0.5))
+
+legend("topright", legend = "A", cex = 2, bty = 'n')}
+
+{plot(green ~ claw, data = color2.t, bty = 'l', las = 1, xlab = "Claw length (cm)", ylab = "Green reflectance",
+     pch = 21, cex = 2, bg = alpha('green', 0.5))
+
+legend("topright", legend = "B", cex = 2, bty = 'n')}
+
+{plot(green ~ muscle, data = color2.t, bty = 'l', las = 1, xlab = "Muscle weight (g)", ylab = "Green reflectance",
+     pch = 21, cex = 2, bg = alpha('green', 0.5))
+
+legend("topright", legend = "C", cex = 2, bty = 'n')}
+
+{plot(green ~ lipid.percent, data = color2.t, xlab = "Lipid content in the body (%)", ylab = "Green reflectance",
+     pch = 21, cex = 2, bg = alpha('green', 0.5), bty = 'l', las = 1)
+
+legend("topright", legend = "D", cex = 2, bty = 'n')}
+
+```

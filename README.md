@@ -44,17 +44,17 @@ COLUMN H: percent.red - red reflectance retrieven from the MICA toolbox. Please,
 COLUMN I: percent.green - green reflectance retrieven from the MICA toolbox. Please, see the paper for a descriptions of how this was done. Unit: % <br>
 COLUMN J: percent.blue - blue reflectance retrieven from the MICA toolbox. Please, see the paper for a descriptions of how this was done. Unit: % <br>
 
-The code was run in R software v4.3.1.
-Packages used:
-ggtern v3.4.2
-performance v0.10.4
-parameters v0.21.4
-betareg v3.1-4
-lmtest v0.9-40
-scales v1.2.1
-ggplot2 v3.4.4
+The code was run in R software v4.3.1. <br>
+Packages used: <br>
+ggtern v3.4.2 <br>
+performance v0.10.4 <br>
+parameters v0.21.4 <br>
+betareg v3.1-4 <br>
+lmtest v0.9-40 <br>
+scales v1.2.1 <br>
+ggplot2 v3.4.4 <br>
 
 
-## Acknowledgment
+#### Acknowledgments:
 
 A.V.P. was funded by Fundação de Amparo à Pesquisa do Estado de São Paulo (process no: 2016/22679-3). J.J.F. was funded through an undergraduate student scholarship for scientific research provided by Conselho Nacional de Desenvolvimento Científico e Tecnológico (CNPq, process no: 144202/2018-2). We wish to thank Rhea Eskew for helpful discussions. 
